@@ -1,0 +1,47 @@
+import 'reflect-metadata';
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
+import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule, { cors: true });
+
+  app.use(helmet());
+  app.setGlobalPrefix('api');
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+  app.useGlobalFilters(new HttpExceptionFilter());
+
+  const config = new DocumentBuilder()
+    .setTitle('VMS API')
+    .setDescription(
+      'Video Management System — authentication, camera management, streaming, ' +
+        'recording/playback, event management and search.',
+    )
+    .setVersion('1.0.0')
+    .addBearerAuth()
+    .addTag('auth')
+    .addTag('users')
+    .addTag('cameras')
+    .addTag('streaming')
+    .addTag('recordings')
+    .addTag('events')
+    .addTag('search')
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  // eslint-disable-next-line no-console
+  console.log(`VMS API listening on :${port} — docs at /api/docs`);
+}
+bootstrap();
